@@ -29,5 +29,35 @@ struct ContentView: View {
         }
         .navigationSplitViewStyle(.balanced)
         .background(theme.backgroundColor)
+        .animation(.easeInOut(duration: 0.3), value: theme.id)
+        .overlay {
+            if appState.isCommandPaletteOpen {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        appState.isCommandPaletteOpen = false
+                    }
+                VStack {
+                    CommandPaletteView()
+                        .padding(.top, 80)
+                    Spacer()
+                }
+            }
+        }
+        .background {
+            Group {
+                Button("") {
+                    appState.isCommandPaletteOpen.toggle()
+                }
+                .keyboardShortcut("k", modifiers: .command)
+
+                Button("") {
+                    appState.showNewBoardSheet = true
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+            }
+            .opacity(0)
+            .frame(width: 0, height: 0)
+        }
     }
 }

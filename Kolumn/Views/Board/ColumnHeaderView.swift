@@ -23,6 +23,12 @@ struct ColumnHeaderView: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .background(theme.columnHeaderColor)
+        .background(
+            LinearGradient(
+                colors: [Color(hex: column.colorHex).opacity(0.35), Color(hex: column.colorHex).opacity(0.15)],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        )
     }
 }

@@ -63,6 +63,12 @@ struct SidebarView: View {
         .sheet(isPresented: $showNewBoard) {
             newBoardSheet
         }
+        .onChange(of: appState.showNewBoardSheet) { _, newValue in
+            if newValue {
+                showNewBoard = true
+                appState.showNewBoardSheet = false
+            }
+        }
         .alert("Rename Board", isPresented: Binding(
             get: { boardToRename != nil },
             set: { if !$0 { boardToRename = nil } }
@@ -144,7 +150,7 @@ struct SidebarView: View {
             modelContext.delete(board)
             try? modelContext.save()
         }
-        if appState.selectedBoardID == nil, let first = boards.first(where: { $0.id != board.id }) {
+        if appState.selectedBoardID == nil, let first = boards.first(where: { $0.persistentModelID != board.persistentModelID }) {
             appState.selectedBoardID = first.persistentModelID
         }
     }

@@ -4,6 +4,7 @@ struct TaskCardView: View {
     let task: TaskItem
     let viewModel: BoardViewModel
     @Environment(\.appTheme) private var theme
+    @Environment(AppState.self) private var appState
     @State private var showDetail = false
 
     var tagAccentColor: Color? {
@@ -44,6 +45,17 @@ struct TaskCardView: View {
                 }
             }
 
+            if !task.subtasks.isEmpty {
+                let completed = task.subtasks.filter(\.isCompleted).count
+                HStack(spacing: 4) {
+                    Image(systemName: "checklist")
+                        .font(.caption2)
+                    Text("\(completed)/\(task.subtasks.count)")
+                        .font(.caption)
+                }
+                .foregroundStyle(completed == task.subtasks.count ? theme.accentColor : theme.secondaryTextColor)
+            }
+
             if !task.notes.isEmpty {
                 Text(task.notes)
                     .font(.caption)
@@ -64,9 +76,42 @@ struct TaskCardView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(theme.accentColor, lineWidth: 2)
+                .opacity(appState.selectedTaskID == task.id ? 1 : 0)
+        )
+        .opacity(task.isArchived ? 0.5 : 1.0)
+        .overlay(alignment: .topTrailing) {
+            if task.isArchived {
+                Text("Archived")
+                    .font(.caption2)
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(theme.secondaryTextColor.opacity(0.2))
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .padding(6)
+            }
+        }
         .contentShape(Rectangle())
-        .onTapGesture {
+        .onTapGesture(count: 2) {
             showDetail = true
+        }
+        .onTapGesture {
+            appState.selectedTaskID = task.id
+        }
+        .contextMenu {
+            Button(task.isArchived ? "Unarchive" : "Archive") {
+                if task.isArchived {
+                    viewModel.unarchiveTask(task)
+                } else {
+                    viewModel.archiveTask(task)
+                }
+            }
+            Divider()
+            Button("Delete", role: .destructive) {
+                viewModel.deleteTask(task)
+            }
         }
         .sheet(isPresented: $showDetail) {
             TaskDetailView(task: task, viewModel: viewModel)

@@ -7,17 +7,44 @@ struct ThemePickerView: View {
         @Bindable var themeManager = themeManager
 
         VStack(alignment: .leading, spacing: 16) {
-            Text("Choose a Theme")
+            Text("Appearance")
                 .font(.title2)
                 .fontWeight(.semibold)
 
+            Picker("Mode", selection: $themeManager.appearanceMode) {
+                ForEach(AppearanceMode.allCases) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 240)
+
+            Text("Light Themes")
+                .font(.headline)
+                .padding(.top, 8)
+
             LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 16)], spacing: 16) {
-                ForEach(AppTheme.all) { theme in
+                ForEach(AppTheme.lightThemes) { theme in
                     ThemeSwatchView(
                         theme: theme,
-                        isSelected: themeManager.current.id == theme.id
+                        isSelected: themeManager.selectedLightThemeID == theme.id
                     ) {
-                        themeManager.current = theme
+                        themeManager.selectedLightThemeID = theme.id
+                    }
+                }
+            }
+
+            Text("Dark Themes")
+                .font(.headline)
+                .padding(.top, 8)
+
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 16)], spacing: 16) {
+                ForEach(AppTheme.darkThemes) { theme in
+                    ThemeSwatchView(
+                        theme: theme,
+                        isSelected: themeManager.selectedDarkThemeID == theme.id
+                    ) {
+                        themeManager.selectedDarkThemeID = theme.id
                     }
                 }
             }
