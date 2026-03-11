@@ -26,6 +26,25 @@ struct KolumnApp: App {
         }
         .modelContainer(for: [Board.self, Column.self, TaskItem.self, Tag.self, Subtask.self])
         .defaultSize(width: 1200, height: 750)
+        .commands {
+            CommandGroup(replacing: .newItem) {
+                Button("New Task") {
+                    appState.triggerQuickAdd = true
+                }
+                .keyboardShortcut("n", modifiers: .command)
+
+                Button("New Board") {
+                    appState.showNewBoardSheet = true
+                }
+                .keyboardShortcut("n", modifiers: [.command, .shift])
+            }
+            CommandMenu("Tools") {
+                Button("Command Palette") {
+                    appState.isCommandPaletteOpen.toggle()
+                }
+                .keyboardShortcut("k", modifiers: .command)
+            }
+        }
 
         Settings {
             SettingsView()

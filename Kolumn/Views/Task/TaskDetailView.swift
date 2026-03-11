@@ -198,15 +198,6 @@ struct TaskDetailView: View {
                 }
                 .foregroundStyle(.red)
 
-                Button(task.isArchived ? "Unarchive" : "Archive") {
-                    if task.isArchived {
-                        viewModel.unarchiveTask(task)
-                    } else {
-                        viewModel.archiveTask(task)
-                    }
-                    dismiss()
-                }
-
                 Spacer()
 
                 Button("Cancel") {
@@ -216,7 +207,8 @@ struct TaskDetailView: View {
             }
         }
         .padding(24)
-        .frame(width: 480, height: 560)
+        .frame(width: 480)
+        .frame(minHeight: 560)
         .sheet(isPresented: $showTagManager) {
             TagManagerSheet(modelContext: modelContext)
         }

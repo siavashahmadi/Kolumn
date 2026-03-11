@@ -79,10 +79,17 @@ struct CommandPaletteView: View {
         .shadow(color: .black.opacity(0.2), radius: 20, y: 10)
         .frame(width: 480)
         .onAppear {
-            isSearchFocused = true
+            Task { @MainActor in
+                isSearchFocused = true
+            }
         }
         .onExitCommand {
             appState.isCommandPaletteOpen = false
+        }
+        .onChange(of: isSearchFocused) { _, focused in
+            if !focused {
+                appState.isCommandPaletteOpen = false
+            }
         }
     }
 

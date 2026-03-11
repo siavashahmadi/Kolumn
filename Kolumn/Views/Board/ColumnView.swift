@@ -11,7 +11,7 @@ struct ColumnView: View {
     @State private var renameText = ""
     @State private var showColorPicker = false
 
-    private static let presetColors = [
+    static let presetColors = [
         "#C3B1E1", "#FFB3A7", "#A7D8FF", "#B5EAD7", "#FFE066",
         "#FFD1DC", "#D4A5A5", "#A5C9CA", "#E8D5B7", "#B8B8D1"
     ]
@@ -21,14 +21,37 @@ struct ColumnView: View {
     }
 
     var body: some View {
+        let tasks = viewModel.sortedTasks(for: column)
+
         VStack(alignment: .leading, spacing: 0) {
-            ColumnHeaderView(column: column, viewModel: viewModel)
+            // Inline header
+            HStack {
+                Text(column.title)
+                    .font(.headline)
+                    .foregroundStyle(theme.primaryTextColor)
+                Spacer()
+                Text("\(tasks.count)")
+                    .font(.caption)
+                    .foregroundStyle(theme.secondaryTextColor)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 2)
+                    .background(theme.accentColor.opacity(0.2))
+                    .clipShape(Capsule())
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(
+                LinearGradient(
+                    colors: [Color(hex: column.colorHex).opacity(0.35), Color(hex: column.colorHex).opacity(0.15)],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
 
             Divider()
 
             ScrollView(.vertical) {
                 LazyVStack(spacing: 8) {
-                    let tasks = viewModel.sortedTasks(for: column, showArchived: appState.showArchivedTasks)
                     ForEach(Array(tasks.enumerated()), id: \.element.id) { index, task in
                         TaskCardView(task: task, viewModel: viewModel)
                             .draggable(TaskDragPayload(taskID: task.id.uuidString))
@@ -38,13 +61,11 @@ struct ColumnView: View {
                                     viewModel.moveTask(withID: payload.taskID, to: column, at: index)
                                 }
                                 return true
-                            } isTargeted: { targeted in
-                                // Individual card targeting handled by card highlight
-                            }
+                            } isTargeted: { _ in }
                     }
                 }
                 .padding(10)
-                .animation(.easeInOut(duration: 0.2), value: column.tasks.count)
+                .animation(.easeInOut(duration: 0.2), value: tasks.count)
             }
             .frame(maxHeight: .infinity)
         }

@@ -7,10 +7,7 @@ struct AddColumnView: View {
     @State private var columnTitle = ""
     @State private var selectedColor = "#C3B1E1"
 
-    private static let presetColors = [
-        "#C3B1E1", "#FFB3A7", "#A7D8FF", "#B5EAD7", "#FFE066",
-        "#FFD1DC", "#D4A5A5", "#A5C9CA", "#E8D5B7", "#B8B8D1"
-    ]
+    // Uses ColumnView.presetColors to avoid duplication
 
     var body: some View {
         VStack(spacing: 16) {
@@ -25,7 +22,7 @@ struct AddColumnView: View {
                     .font(.subheadline)
                     .foregroundStyle(theme.secondaryTextColor)
                 LazyVGrid(columns: Array(repeating: GridItem(.fixed(28), spacing: 6), count: 5), spacing: 6) {
-                    ForEach(Self.presetColors, id: \.self) { hex in
+                    ForEach(ColumnView.presetColors, id: \.self) { hex in
                         Circle()
                             .fill(Color(hex: hex))
                             .frame(width: 28, height: 28)

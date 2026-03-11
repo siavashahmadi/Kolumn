@@ -12,9 +12,8 @@ struct BoardView: View {
     @State private var quickTaskTitle = ""
     @State private var showTaskDetail = false
     @State private var showStats = false
-    @FocusState private var isQuickAddFocused: Bool
+    @State private var isQuickAddFocused = false
     @FocusState private var isBoardFocused: Bool
-    @Environment(\.undoManager) private var undoManager
 
     init(board: Board, modelContext: ModelContext) {
         self.board = board
@@ -22,8 +21,10 @@ struct BoardView: View {
     }
 
     var body: some View {
+        let columns = viewModel.sortedColumns
+
         GeometryReader { geo in
-            let columnCount = viewModel.sortedColumns.count
+            let columnCount = columns.count
             let totalSpacing = CGFloat(max(columnCount - 1, 0)) * 12
             let padding: CGFloat = 20 * 2
             let availableWidth = geo.size.width - padding - totalSpacing
@@ -34,9 +35,13 @@ struct BoardView: View {
 
             ScrollView(needsScroll ? .horizontal : []) {
                 HStack(alignment: .top, spacing: 12) {
-                    ForEach(Array(viewModel.sortedColumns.enumerated()), id: \.element.id) { index, column in
-                        ColumnView(column: column, columnIndex: index, viewModel: viewModel)
-                            .frame(width: needsScroll ? 260 : columnWidth)
+                    ForEach(columns) { column in
+                        ColumnView(
+                            column: column,
+                            columnIndex: columns.firstIndex(where: { $0.id == column.id }) ?? 0,
+                            viewModel: viewModel
+                        )
+                        .frame(width: needsScroll ? 260 : columnWidth)
                     }
                 }
                 .padding(20)
@@ -52,48 +57,18 @@ struct BoardView: View {
         )
         .navigationTitle("\(board.emoji) \(board.name)")
         .toolbar {
-            ToolbarItem(placement: .automatic) {
-                Menu {
-                    Section("Light") {
-                        ForEach(AppTheme.lightThemes) { t in
-                            Button {
-                                themeManager.selectedLightThemeID = t.id
-                                themeManager.appearanceMode = .light
-                            } label: {
-                                if t.id == themeManager.selectedLightThemeID {
-                                    Label(t.name, systemImage: "checkmark")
-                                } else {
-                                    Text(t.name)
-                                }
-                            }
-                        }
-                    }
-                    Section("Dark") {
-                        ForEach(AppTheme.darkThemes) { t in
-                            Button {
-                                themeManager.selectedDarkThemeID = t.id
-                                themeManager.appearanceMode = .dark
-                            } label: {
-                                if t.id == themeManager.selectedDarkThemeID {
-                                    Label(t.name, systemImage: "checkmark")
-                                } else {
-                                    Text(t.name)
-                                }
-                            }
-                        }
-                    }
-                } label: {
-                    Label("Theme", systemImage: "paintpalette")
-                }
-            }
-
             ToolbarItem(placement: .principal) {
                 HStack(spacing: 6) {
-                    TextField("Add task", text: $quickTaskTitle)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 200)
-                        .focused($isQuickAddFocused)
-                        .onSubmit { quickAddTask() }
+                    ToolbarTextField(
+                        placeholder: "Add task",
+                        text: $quickTaskTitle,
+                        isFocused: $isQuickAddFocused,
+                        onSubmit: {
+                            quickAddTask()
+                            isBoardFocused = true
+                        }
+                    )
+                    .frame(width: 200)
 
                     Button {
                         if quickTaskTitle.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -104,34 +79,28 @@ struct BoardView: View {
                     } label: {
                         Image(systemName: "plus.circle.fill")
                             .foregroundStyle(theme.accentColor)
+                            .padding(.horizontal, 6)
                     }
                     .buttonStyle(.plain)
                 }
             }
 
             ToolbarItem(placement: .primaryAction) {
-                Button("Add Column", systemImage: "plus.rectangle.on.rectangle") {
-                    showAddColumn = true
-                }
-            }
-
-            ToolbarItem(placement: .automatic) {
                 Button {
-                    appState.showArchivedTasks.toggle()
+                    showAddColumn = true
                 } label: {
-                    Label(
-                        appState.showArchivedTasks ? "Hide Archived" : "Show Archived",
-                        systemImage: appState.showArchivedTasks ? "archivebox.fill" : "archivebox"
-                    )
+                    Image(systemName: "plus.rectangle.on.rectangle")
                 }
+                .help("Add Column")
             }
 
             ToolbarItem(placement: .automatic) {
                 Button {
                     showStats.toggle()
                 } label: {
-                    Label("Stats", systemImage: "chart.bar")
+                    Image(systemName: "chart.bar")
                 }
+                .help("Stats")
                 .popover(isPresented: $showStats) {
                     BoardStatsView(board: board, viewModel: viewModel)
                 }
@@ -146,9 +115,9 @@ struct BoardView: View {
         .onAppear {
             appState.selectedTaskID = nil
             appState.selectedColumnIndex = nil
-            viewModel.modelContext.undoManager = undoManager
+            isQuickAddFocused = true
         }
-        .focusable()
+        .focusable(interactions: .activate)
         .focused($isBoardFocused)
         .onKeyPress(.escape) {
             appState.selectedTaskID = nil
@@ -163,8 +132,11 @@ struct BoardView: View {
             return .ignored
         }
         .onKeyPress(.delete) {
-            deleteSelectedTask()
-            return .handled
+            if selectedTask != nil {
+                deleteSelectedTask()
+                return .handled
+            }
+            return .ignored
         }
         .onKeyPress(.upArrow) {
             moveSelection(direction: .up)
@@ -182,16 +154,22 @@ struct BoardView: View {
             moveSelection(direction: .right)
             return .handled
         }
-        .sheet(isPresented: $showTaskDetail) {
+        .sheet(isPresented: $showTaskDetail, onDismiss: { isBoardFocused = true }) {
             if let task = selectedTask {
                 TaskDetailView(task: task, viewModel: viewModel)
             }
         }
-        .background {
-            Button("") { isQuickAddFocused = true }
-                .keyboardShortcut("n", modifiers: .command)
-                .opacity(0)
-                .frame(width: 0, height: 0)
+        .onChange(of: appState.triggerQuickAdd) { _, newValue in
+            if newValue {
+                isQuickAddFocused = true
+                appState.triggerQuickAdd = false
+            }
+        }
+        .onChange(of: showAddColumn) { _, isShowing in
+            if !isShowing { isBoardFocused = true }
+        }
+        .onChange(of: showAddTask) { _, isShowing in
+            if !isShowing { isBoardFocused = true }
         }
     }
 
@@ -226,7 +204,6 @@ struct BoardView: View {
         let columns = viewModel.sortedColumns
         guard !columns.isEmpty else { return }
 
-        // Find current position
         var currentColIdx = appState.selectedColumnIndex ?? 0
         let currentTaskID = appState.selectedTaskID
 
@@ -234,17 +211,17 @@ struct BoardView: View {
         case .left:
             currentColIdx = max(0, currentColIdx - 1)
             appState.selectedColumnIndex = currentColIdx
-            let tasks = viewModel.sortedTasks(for: columns[currentColIdx], showArchived: appState.showArchivedTasks)
+            let tasks = viewModel.sortedTasks(for: columns[currentColIdx])
             appState.selectedTaskID = tasks.first?.id
         case .right:
             currentColIdx = min(columns.count - 1, currentColIdx + 1)
             appState.selectedColumnIndex = currentColIdx
-            let tasks = viewModel.sortedTasks(for: columns[currentColIdx], showArchived: appState.showArchivedTasks)
+            let tasks = viewModel.sortedTasks(for: columns[currentColIdx])
             appState.selectedTaskID = tasks.first?.id
         case .up, .down:
             let colIdx = min(currentColIdx, columns.count - 1)
             appState.selectedColumnIndex = colIdx
-            let tasks = viewModel.sortedTasks(for: columns[colIdx], showArchived: appState.showArchivedTasks)
+            let tasks = viewModel.sortedTasks(for: columns[colIdx])
             guard !tasks.isEmpty else { return }
             if let taskID = currentTaskID, let idx = tasks.firstIndex(where: { $0.id == taskID }) {
                 let newIdx = direction == .up ? max(0, idx - 1) : min(tasks.count - 1, idx + 1)

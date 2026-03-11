@@ -5,60 +5,48 @@ struct BoardStatsView: View {
     let viewModel: BoardViewModel
     @Environment(\.appTheme) private var theme
 
-    private var allTasks: [TaskItem] {
-        board.columns.flatMap(\.tasks)
-    }
-
     var body: some View {
+        let activeTasks = board.columns.flatMap(\.tasks).filter { !$0.isArchived }
+        let overdueCount = activeTasks.filter { $0.dueDate.map { $0 < .now } ?? false }.count
+
         VStack(alignment: .leading, spacing: 16) {
             Text("Board Stats")
                 .font(.headline)
 
-            // Overview
             VStack(alignment: .leading, spacing: 6) {
                 Text("Overview")
                     .font(.subheadline)
                     .foregroundStyle(theme.secondaryTextColor)
-                StatRow(label: "Total Tasks", value: "\(allTasks.count)")
-                StatRow(label: "Active", value: "\(allTasks.filter { !$0.isArchived }.count)")
-                StatRow(label: "Archived", value: "\(allTasks.filter(\.isArchived).count)")
+                StatRow(label: "Total Tasks", value: "\(activeTasks.count)")
                 StatRow(label: "Overdue", value: "\(overdueCount)", highlight: overdueCount > 0)
             }
 
             Divider()
 
-            // By Priority
             VStack(alignment: .leading, spacing: 6) {
                 Text("By Priority")
                     .font(.subheadline)
                     .foregroundStyle(theme.secondaryTextColor)
                 ForEach(Priority.allCases) { priority in
-                    let count = allTasks.filter { $0.priority == priority && !$0.isArchived }.count
+                    let count = activeTasks.filter { $0.priority == priority }.count
                     StatRow(label: priority.label, value: "\(count)")
                 }
             }
 
             Divider()
 
-            // By Column
             VStack(alignment: .leading, spacing: 6) {
                 Text("By Column")
                     .font(.subheadline)
                     .foregroundStyle(theme.secondaryTextColor)
                 ForEach(viewModel.sortedColumns) { column in
-                    let active = column.tasks.filter { !$0.isArchived }.count
-                    StatRow(label: column.title, value: "\(active)")
+                    let count = viewModel.sortedTasks(for: column).count
+                    StatRow(label: column.title, value: "\(count)")
                 }
             }
         }
         .padding(16)
         .frame(width: 220)
-    }
-
-    private var overdueCount: Int {
-        allTasks.filter { task in
-            !task.isArchived && (task.dueDate.map { $0 < .now } ?? false)
-        }.count
     }
 }
 

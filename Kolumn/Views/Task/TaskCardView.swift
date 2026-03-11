@@ -40,7 +40,13 @@ struct TaskCardView: View {
             if !task.tags.isEmpty {
                 FlowLayout(spacing: 4) {
                     ForEach(task.tags) { tag in
-                        TagChipView(tag: tag)
+                        Text(tag.name)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: tag.colorHex).opacity(0.3))
+                            .foregroundStyle(Color(hex: tag.colorHex))
+                            .clipShape(Capsule())
                     }
                 }
             }
@@ -81,18 +87,6 @@ struct TaskCardView: View {
                 .strokeBorder(theme.accentColor, lineWidth: 2)
                 .opacity(appState.selectedTaskID == task.id ? 1 : 0)
         )
-        .opacity(task.isArchived ? 0.5 : 1.0)
-        .overlay(alignment: .topTrailing) {
-            if task.isArchived {
-                Text("Archived")
-                    .font(.caption2)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(theme.secondaryTextColor.opacity(0.2))
-                    .clipShape(RoundedRectangle(cornerRadius: 4))
-                    .padding(6)
-            }
-        }
         .contentShape(Rectangle())
         .onTapGesture(count: 2) {
             showDetail = true
@@ -101,14 +95,6 @@ struct TaskCardView: View {
             appState.selectedTaskID = task.id
         }
         .contextMenu {
-            Button(task.isArchived ? "Unarchive" : "Archive") {
-                if task.isArchived {
-                    viewModel.unarchiveTask(task)
-                } else {
-                    viewModel.archiveTask(task)
-                }
-            }
-            Divider()
             Button("Delete", role: .destructive) {
                 viewModel.deleteTask(task)
             }

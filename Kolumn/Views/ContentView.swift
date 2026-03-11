@@ -14,8 +14,6 @@ struct ContentView: View {
     }
 
     var body: some View {
-        @Bindable var appState = appState
-
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 200, ideal: 230, max: 280)
@@ -24,7 +22,22 @@ struct ContentView: View {
                 BoardView(board: board, modelContext: modelContext)
                     .id(board.id)
             } else {
-                EmptyBoardView()
+                VStack(spacing: 16) {
+                    Image(systemName: "rectangle.on.rectangle.angled")
+                        .font(.system(size: 48))
+                        .foregroundStyle(theme.accentColor.opacity(0.6))
+                    Text("No Board Selected")
+                        .font(.title2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(theme.primaryTextColor)
+                    Text("Create a new board or select one from the sidebar to get started.")
+                        .font(.body)
+                        .foregroundStyle(theme.secondaryTextColor)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 300)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(theme.backgroundColor)
             }
         }
         .navigationSplitViewStyle(.balanced)
@@ -43,21 +56,6 @@ struct ContentView: View {
                     Spacer()
                 }
             }
-        }
-        .background {
-            Group {
-                Button("") {
-                    appState.isCommandPaletteOpen.toggle()
-                }
-                .keyboardShortcut("k", modifiers: .command)
-
-                Button("") {
-                    appState.showNewBoardSheet = true
-                }
-                .keyboardShortcut("n", modifiers: [.command, .shift])
-            }
-            .opacity(0)
-            .frame(width: 0, height: 0)
         }
     }
 }

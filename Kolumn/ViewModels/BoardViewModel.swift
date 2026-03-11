@@ -103,22 +103,10 @@ import SwiftUI
         }
     }
 
-    func sortedTasks(for column: Column, showArchived: Bool = false) -> [TaskItem] {
+    func sortedTasks(for column: Column) -> [TaskItem] {
         column.tasks
-            .filter { showArchived || !$0.isArchived }
+            .filter { !$0.isArchived }
             .sorted { $0.sortOrder < $1.sortOrder }
-    }
-
-    // MARK: - Archive
-
-    func archiveTask(_ task: TaskItem) {
-        task.isArchived = true
-        save()
-    }
-
-    func unarchiveTask(_ task: TaskItem) {
-        task.isArchived = false
-        save()
     }
 
     // MARK: - Subtasks
