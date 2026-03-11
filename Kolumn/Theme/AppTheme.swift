@@ -50,7 +50,44 @@ struct AppTheme: Identifiable, Codable, Equatable {
         columnHeader: "#FFF9D6"
     )
 
-    static let all: [AppTheme] = [.lavenderMint, .peachSky, .lemonRose]
+    // MARK: - Dark themes
+
+    static let darkLavender = AppTheme(
+        id: "dark-lavender",
+        name: "Dark Lavender",
+        background: "#1A1625",
+        accent: "#B39DDB",
+        cardBackground: "#2D2540",
+        primaryText: "#E8E0F0",
+        secondaryText: "#9E93B0",
+        columnHeader: "#241E35"
+    )
+
+    static let darkDefault = AppTheme(
+        id: "dark-default",
+        name: "Dark Slate",
+        background: "#1C1C1E",
+        accent: "#6CB4EE",
+        cardBackground: "#2C2C2E",
+        primaryText: "#E5E5E7",
+        secondaryText: "#98989D",
+        columnHeader: "#242426"
+    )
+
+    static let darkRose = AppTheme(
+        id: "dark-rose",
+        name: "Dark Rose",
+        background: "#1E1518",
+        accent: "#E8899E",
+        cardBackground: "#2D2025",
+        primaryText: "#F0E0E5",
+        secondaryText: "#A08890",
+        columnHeader: "#291C20"
+    )
+
+    static let lightThemes: [AppTheme] = [.lavenderMint, .peachSky, .lemonRose]
+    static let darkThemes: [AppTheme] = [.darkLavender, .darkDefault, .darkRose]
+    static let all: [AppTheme] = lightThemes + darkThemes
 }
 
 // MARK: - Color hex extension

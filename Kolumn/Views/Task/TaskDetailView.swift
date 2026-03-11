@@ -13,6 +13,9 @@ struct TaskDetailView: View {
     @State private var dueDate: Date
     @State private var hasDueDate: Bool
     @State private var showTagManager = false
+    @State private var newSubtaskTitle = ""
+    @State private var selectedReminder: ReminderOffset?
+    @Environment(NotificationManager.self) private var notificationManager: NotificationManager?
     @Query(sort: \Tag.name) private var allTags: [Tag]
 
     init(task: TaskItem, viewModel: BoardViewModel) {
@@ -23,6 +26,7 @@ struct TaskDetailView: View {
         _priority = State(initialValue: task.priority)
         _dueDate = State(initialValue: task.dueDate ?? .now)
         _hasDueDate = State(initialValue: task.dueDate != nil)
+        _selectedReminder = State(initialValue: task.reminderOffset.flatMap { ReminderOffset(rawValue: $0) })
     }
 
     var body: some View {
@@ -71,6 +75,22 @@ struct TaskDetailView: View {
                 }
             }
 
+            // Reminder
+            if hasDueDate && (notificationManager?.isAuthorized ?? false) {
+                HStack {
+                    Text("Reminder")
+                        .foregroundStyle(theme.secondaryTextColor)
+                    Spacer()
+                    Picker("Reminder", selection: $selectedReminder) {
+                        Text("None").tag(nil as ReminderOffset?)
+                        ForEach(ReminderOffset.allCases) { offset in
+                            Text(offset.label).tag(offset as ReminderOffset?)
+                        }
+                    }
+                    .frame(width: 200)
+                }
+            }
+
             // Tags
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
@@ -89,6 +109,65 @@ struct TaskDetailView: View {
                             toggleTag(tag)
                         }
                     }
+                }
+            }
+
+            // Subtasks
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Text("Subtasks")
+                        .foregroundStyle(theme.secondaryTextColor)
+                    Spacer()
+                    if !task.subtasks.isEmpty {
+                        let completed = task.subtasks.filter(\.isCompleted).count
+                        Text("\(completed)/\(task.subtasks.count)")
+                            .font(.caption)
+                            .foregroundStyle(theme.secondaryTextColor)
+                    }
+                }
+
+                let sortedSubtasks = task.subtasks.sorted { $0.sortOrder < $1.sortOrder }
+                ForEach(sortedSubtasks) { subtask in
+                    HStack(spacing: 8) {
+                        Button {
+                            viewModel.toggleSubtask(subtask)
+                        } label: {
+                            Image(systemName: subtask.isCompleted ? "checkmark.circle.fill" : "circle")
+                                .foregroundStyle(subtask.isCompleted ? theme.accentColor : theme.secondaryTextColor)
+                        }
+                        .buttonStyle(.plain)
+
+                        Text(subtask.title)
+                            .strikethrough(subtask.isCompleted)
+                            .foregroundStyle(subtask.isCompleted ? theme.secondaryTextColor : theme.primaryTextColor)
+
+                        Spacer()
+
+                        Button {
+                            viewModel.deleteSubtask(subtask, from: task)
+                        } label: {
+                            Image(systemName: "xmark")
+                                .font(.caption2)
+                                .foregroundStyle(theme.secondaryTextColor)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                HStack(spacing: 6) {
+                    Image(systemName: "plus")
+                        .font(.caption)
+                        .foregroundStyle(theme.secondaryTextColor)
+                    TextField("Add subtask", text: $newSubtaskTitle)
+                        .textFieldStyle(.plain)
+                        .font(.callout)
+                        .onSubmit {
+                            let trimmed = newSubtaskTitle.trimmingCharacters(in: .whitespaces)
+                            if !trimmed.isEmpty {
+                                viewModel.addSubtask(title: trimmed, to: task)
+                                newSubtaskTitle = ""
+                            }
+                        }
                 }
             }
 
@@ -128,7 +207,8 @@ struct TaskDetailView: View {
             }
         }
         .padding(24)
-        .frame(width: 480, height: 500)
+        .frame(width: 480)
+        .frame(minHeight: 560)
         .sheet(isPresented: $showTagManager) {
             TagManagerSheet(modelContext: modelContext)
         }
@@ -139,6 +219,15 @@ struct TaskDetailView: View {
         task.notes = notes
         task.priority = priority
         task.dueDate = hasDueDate ? dueDate : nil
+        task.reminderOffset = selectedReminder?.rawValue
+
+        // Handle notification scheduling
+        if hasDueDate, let reminder = selectedReminder {
+            notificationManager?.scheduleReminder(for: task, reminderOffset: reminder)
+        } else {
+            notificationManager?.cancelReminder(for: task)
+        }
+
         try? modelContext.save()
     }
 

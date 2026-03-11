@@ -4,6 +4,7 @@ struct TaskCardView: View {
     let task: TaskItem
     let viewModel: BoardViewModel
     @Environment(\.appTheme) private var theme
+    @Environment(AppState.self) private var appState
     @State private var showDetail = false
 
     var tagAccentColor: Color? {
@@ -39,9 +40,26 @@ struct TaskCardView: View {
             if !task.tags.isEmpty {
                 FlowLayout(spacing: 4) {
                     ForEach(task.tags) { tag in
-                        TagChipView(tag: tag)
+                        Text(tag.name)
+                            .font(.caption2)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Color(hex: tag.colorHex).opacity(0.3))
+                            .foregroundStyle(Color(hex: tag.colorHex))
+                            .clipShape(Capsule())
                     }
                 }
+            }
+
+            if !task.subtasks.isEmpty {
+                let completed = task.subtasks.filter(\.isCompleted).count
+                HStack(spacing: 4) {
+                    Image(systemName: "checklist")
+                        .font(.caption2)
+                    Text("\(completed)/\(task.subtasks.count)")
+                        .font(.caption)
+                }
+                .foregroundStyle(completed == task.subtasks.count ? theme.accentColor : theme.secondaryTextColor)
             }
 
             if !task.notes.isEmpty {
@@ -64,9 +82,22 @@ struct TaskCardView: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .strokeBorder(theme.accentColor, lineWidth: 2)
+                .opacity(appState.selectedTaskID == task.id ? 1 : 0)
+        )
         .contentShape(Rectangle())
-        .onTapGesture {
+        .onTapGesture(count: 2) {
             showDetail = true
+        }
+        .onTapGesture {
+            appState.selectedTaskID = task.id
+        }
+        .contextMenu {
+            Button("Delete", role: .destructive) {
+                viewModel.deleteTask(task)
+            }
         }
         .sheet(isPresented: $showDetail) {
             TaskDetailView(task: task, viewModel: viewModel)

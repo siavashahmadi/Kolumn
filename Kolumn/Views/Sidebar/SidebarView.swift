@@ -22,8 +22,19 @@ struct SidebarView: View {
         )) {
             Section("Boards") {
                 ForEach(boards) { board in
-                    SidebarRowView(board: board)
-                        .tag(board.persistentModelID)
+                    HStack(spacing: 8) {
+                        Text(board.emoji)
+                            .font(.title3)
+                            .frame(width: 28, height: 28)
+                            .background(theme.accentColor.opacity(0.15))
+                            .clipShape(Circle())
+                        Text(board.name)
+                            .font(.body)
+                            .foregroundStyle(theme.primaryTextColor)
+                            .lineLimit(1)
+                    }
+                    .padding(.vertical, 2)
+                    .tag(board.persistentModelID)
                         .contextMenu {
                             Button("Rename Board") {
                                 renameBoardText = board.name
@@ -62,6 +73,12 @@ struct SidebarView: View {
         }
         .sheet(isPresented: $showNewBoard) {
             newBoardSheet
+        }
+        .onChange(of: appState.showNewBoardSheet) { _, newValue in
+            if newValue {
+                showNewBoard = true
+                appState.showNewBoardSheet = false
+            }
         }
         .alert("Rename Board", isPresented: Binding(
             get: { boardToRename != nil },
@@ -144,7 +161,7 @@ struct SidebarView: View {
             modelContext.delete(board)
             try? modelContext.save()
         }
-        if appState.selectedBoardID == nil, let first = boards.first(where: { $0.id != board.id }) {
+        if appState.selectedBoardID == nil, let first = boards.first(where: { $0.persistentModelID != board.persistentModelID }) {
             appState.selectedBoardID = first.persistentModelID
         }
     }

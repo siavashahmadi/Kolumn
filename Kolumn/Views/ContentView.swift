@@ -14,8 +14,6 @@ struct ContentView: View {
     }
 
     var body: some View {
-        @Bindable var appState = appState
-
         NavigationSplitView(columnVisibility: $columnVisibility) {
             SidebarView()
                 .navigationSplitViewColumnWidth(min: 200, ideal: 230, max: 280)
@@ -24,10 +22,40 @@ struct ContentView: View {
                 BoardView(board: board, modelContext: modelContext)
                     .id(board.id)
             } else {
-                EmptyBoardView()
+                VStack(spacing: 16) {
+                    Image(systemName: "rectangle.on.rectangle.angled")
+                        .font(.system(size: 48))
+                        .foregroundStyle(theme.accentColor.opacity(0.6))
+                    Text("No Board Selected")
+                        .font(.title2)
+                        .fontWeight(.medium)
+                        .foregroundStyle(theme.primaryTextColor)
+                    Text("Create a new board or select one from the sidebar to get started.")
+                        .font(.body)
+                        .foregroundStyle(theme.secondaryTextColor)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: 300)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(theme.backgroundColor)
             }
         }
         .navigationSplitViewStyle(.balanced)
         .background(theme.backgroundColor)
+        .animation(.easeInOut(duration: 0.3), value: theme.id)
+        .overlay {
+            if appState.isCommandPaletteOpen {
+                Color.black.opacity(0.3)
+                    .ignoresSafeArea()
+                    .onTapGesture {
+                        appState.isCommandPaletteOpen = false
+                    }
+                VStack {
+                    CommandPaletteView()
+                        .padding(.top, 80)
+                    Spacer()
+                }
+            }
+        }
     }
 }

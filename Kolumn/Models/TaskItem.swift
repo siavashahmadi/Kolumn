@@ -22,9 +22,13 @@ enum Priority: String, Codable, CaseIterable, Identifiable {
     var dueDate: Date?
     var priority: Priority
     var sortOrder: Int
+    var isArchived: Bool
+    var reminderOffset: String?
     var createdAt: Date
     var column: Column?
     @Relationship var tags: [Tag]
+    @Relationship(deleteRule: .cascade, inverse: \Subtask.taskItem)
+    var subtasks: [Subtask]
 
     init(title: String, priority: Priority = .medium) {
         self.id = UUID()
@@ -33,7 +37,10 @@ enum Priority: String, Codable, CaseIterable, Identifiable {
         self.dueDate = nil
         self.priority = priority
         self.sortOrder = 0
+        self.isArchived = false
+        self.reminderOffset = nil
         self.createdAt = .now
         self.tags = []
+        self.subtasks = []
     }
 }
